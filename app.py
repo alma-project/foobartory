@@ -2,8 +2,9 @@
 
 import random
 from functools import partial
+from bisect import insort
 from datetime import datetime, timedelta
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
     
 class Item():
@@ -24,57 +25,102 @@ class Item():
     def __str__(self):
         return '<{!r}>'.format(self)
 
+    def enter(self, list):
+        list.append(self)
+
 
 class Robot(Item):    
     pass
 
 
 class Process(Item):
-    def __init__(self, item_id, *, task, robot, endtime, trigger):
-        self.id = item_id
-        self.task = task
-        self.robot = robot
+    def __init__(self, item_id, *, endtime, job, robot, ressources):
+        super().__init__(item_id)
         self.endtime = endtime
-        self._trigger = trigger
+        self.job = job
+        self.robot = robot
+        self.ressources = ressources
 
-    def complete(self):
-        print(self, 'has been completed by', self.robot) 
-        self._trigger(self.robot)
+    def __lt__(self, other):
+        return self.endtime < other.endtime
 
+    def enter(self, list):
+        insort(list, self)
+        
 
 class Factory(ABC):     
-    def __init__(self, *, stock_classes, cash, nb_robots):
+    def __init__(self, *, stock_classes, cash_start,
+                 nb_robots_start, nb_robots_max):
         self._counter = {}
         self._item_classes = {}
+        self._ressources = {}
         
         for cls in stock_classes + [Robot, Process]:
             item_type = cls.__name__.lower()
             cls._item_type = item_type
             self._counter[item_type] = 0
             self._item_classes[item_type] = cls
-            setattr(self, item_type + 's', [])            
+            self._ressources[item_type] = []            
 
-        self.cash = cash
-
-        for _ in range(nb_robots):
+        for _ in range(nb_robots_start):
             new_robot = self.new('robot')
-            self.robots.append(new_robot)
 
-        self._counter['process'] = 0
-        self.schedule = []
+        self.cash = cash_start
+        self._nb_robots_max = nb_robots_max
+        self._timestart = datetime.now()
+
+    def list(self, item_type):
+        return self._ressources[item_type]
+        
+    def count(self, item_type):
+        return len(self.list(item_type))
             
     def new(self, item_type, **kwargs):
         self._counter[item_type] += 1
-        return self._item_classes[item_type](
-            item_id = self._counter[item_type],
-            **kwargs )
+        if item_type == 'process':
+            new_item = self._item_classes[item_type](
+                item_id = self._counter[item_type],
+                endtime = self.compute_endtime(kwargs['job']),
+                **kwargs)
+        else:
+            new_item = self._item_classes[item_type](
+                item_id = self._counter[item_type],
+                **kwargs )
+        new_item.enter(self.list(item_type))
+        return new_item
 
+    def add(self, item_type, new_item):
+        self.list(item_type).append(new_item)
+
+    def remove(self, item_type):
+        return self._ressources[item_type].pop(0)
+
+    @property
+    def elapsed_time(self):
+        elapsed_time = datetime.now() - self._timestart
+        return elapsed_time / self._timings['_coeff']
+
+    @property
+    def is_waiting(self):
+        leading_process = self.list('process')[0]
+        job = leading_process.job
+        endtime = leading_process.endtime
+        return datetime.now() < endtime
+
+    @abstractmethod
+    def compute_endtime(self, job):
+        pass
+    
     @abstractmethod
     def start(self):
         pass
 
     @abstractmethod
-    def order(self, robot, *, prev_task):
+    def allocate(self, *args):
+        pass
+
+    @abstractmethod
+    def allocate(self, *args):
         pass
     
     @abstractmethod
@@ -95,162 +141,178 @@ class Foobar(Item):
 
 
 class Foobartory(Factory):
-    def __init__(self, *, stock_classes, cash, nb_robots, timings):
+    def __init__(self, timings, **kargs):
         self._timings = timings
-        super().__init__(
-            stock_classes=stock_classes,
-            nb_robots=nb_robots,
-            cash=cash )
+        super().__init__(**kargs)
 
-    def leadtime(self, task):
-        duration = self._timings[task]
+    def compute_endtime(self, job):
+        duration = self._timings[job]
         if len(duration) == 1:
             duration = duration[0]
         elif len(duration) == 2:
             duration = random.uniform(duration[0], duration[1])
         return datetime.now() + timedelta(
-            seconds=duration * self._timings['_coeff'])
-        
-    def store_foo(self, robot):
-        new_foo = self.new('foo')
-        self.foos.append(new_foo)
-        print(new_foo, 'has been mined by', robot)
-
-    def store_bar(self, robot):
-        new_bar = self.new('bar')
-        self.bars.append(new_bar)
-        print(new_bar, 'has been mined by', robot)
-
-
-    def store_foobar(self, robot, *, foo, bar):
-        if random.random() < 0.6:
-            new_foobar = self.new('foobar', foo=foo, bar=bar)
-            self.foobars.append(new_foobar)
-            print(new_foobar, 'has been mined by', robot)
-
-        else:
-            self.bars.append(bar)
-            print(robot, 'has failed to assemble a foobar')
-            print(foo, 'has been lost')
-            print(bar, 'has been restored')
+                seconds=duration * self._timings['_coeff'])
     
-    def sell_foobar(self, robot, *, foobars):
-        self.cash += len(foobars)
-        for fb in foobars:
-            print(fb, 'has been sold by', robot)
-
-    def buy_robot(self, robot, *, nb_orders):
-        for _ in range(nb_orders):
-            new_robot = self.new('robot')
-            self.robots.append(new_robot)
-            print(new_robot, 'has been bought by', robot)
-            self.order(new_robot)      
-
     def start(self):
-        start_time = datetime.now()
-        current_time = start_time
-
-        self.report()
+        print('Foobartory started...')
+        print()
         
-        for robot in self.robots:
-            self.order(robot)
-
-        while len(self.robots) < 30:
-            if current_time >= self.schedule[0].endtime:
-                process = self.schedule.pop(0)
-                process.complete()
-                self.order(process.robot, prev_task=process.task)
+        for robot in self.list('robot'):
+            self.new('process',
+                     job = 'mine_foo',
+                     robot = robot,
+                     ressources = {} )
+        
+        while self.count('robot') < self._nb_robots_max:
+            
+            if not self.is_waiting:
+                process = self.remove('process')
+                self.complete(process)
+                self.allocate(process.robot, prev_job=process.job)
                 self.report()
-            current_time = datetime.now()
-
+        
+        fstr = '{:19}{}'    
+        print(fstr.format(
+            'processes created', self._counter['process']))
+        print(fstr.format(
+            'foos mined', self._counter['foo']))
+        print(fstr.format(
+            'bars mined', self._counter['bar']))
+        print(fstr.format(
+            'foobars assembled', self._counter['foobar']))
+        
         print()
-        print('Completed in {} (simulated time)'.format(
-            (current_time - start_time) / self._timings['_coeff']))
-        print()
 
-    def order(self, robot, prev_task=None):
-        nb_foos = len(self.foos)
-        nb_bars = len(self.bars)
-        nb_foobars = len(self.foobars)
+    def allocate(self, robot, prev_job=None):
+        nb_foos = self.count('foo')
+        nb_bars = self.count('bar')
+        nb_foobars = self.count('foobar')
         cash = self.cash
 
         if cash >= 3 and nb_foos >= 6:
-            new_task='buy_robot'
+            new_job='buy_robot'
             nb_orders = min(cash // 3, nb_foos // 6)
                     
         elif nb_foos < 6:
-            new_task='mine_foo'
+            new_job='mine_foo'
 
         elif nb_foobars > 0:
-            new_task='sell_foobar'
+            new_job='sell_foobar'
             nb_orders = min(5, nb_foobars)
 
         elif nb_bars > 0:
-            new_task='assemble_foobar'
+            new_job='assemble_foobar'
 
         else:
-            new_task='mine_bar'
+            new_job='mine_bar'
     
-        move_task = "move_to_{}".format(new_task)
-        if prev_task != new_task and prev_task != move_task:
-            new_task = move_task
+        move_job = "move_to_{}".format(new_job)
+        if prev_job != new_job and prev_job != move_job:
+            new_job = move_job
 
-        if 'move_to' in new_task:
-            trigger = lambda rb : None
+        if ( 'move_to' in new_job or
+             'mine_foo' == new_job or
+             'mine_bar' == new_job ):
+            ressources = {}
 
-        elif 'mine_foo' == new_task:
-            trigger = self.store_foo
+        elif 'assemble_foobar' == new_job:
+            foo = self.remove('foo')
+            bar = self.remove('bar')
+            ressources = { 'foo': [foo], 'bar': [bar] }
 
-        elif 'mine_bar' == new_task:
-            trigger = self.store_bar
-
-        elif 'assemble_foobar' == new_task:
-            foo = self.foos.pop()
-            bar = self.bars.pop()
-            trigger = partial(self.store_foobar, foo=foo, bar=bar)
-
-        elif 'sell_foobar' == new_task:
+        elif 'sell_foobar' == new_job:
             foobars = []
             for _ in range(nb_orders):
-                foobars.append(self.foobars.pop())
-            trigger = partial(self.sell_foobar, foobars=foobars)
+                foobars.append(self.remove('foobar'))
+            ressources = { 'foobar': foobars }
 
-        elif 'buy_robot' == new_task:
+        elif 'buy_robot' == new_job:
             self.cash -= 3 * nb_orders
             for _ in range(6 * nb_orders):
-                self.foos.pop()
-            trigger = partial(self.buy_robot, nb_orders=nb_orders)
+                self.remove('foo')
+            ressources = { 'cash': 3 * nb_orders }
 
         new_process = self.new('process',
-            task = new_task,
+            job = new_job,
             robot = robot,
-            endtime = self.leadtime(new_task),
-            trigger = trigger )
-        self.schedule.append(new_process)
-        self.schedule.sort(key=lambda proc: proc.endtime)
+            ressources = ressources)
 
-        print("{} has a new task: '{}'".format(robot, new_task))
+        print()
+        print(new_process, 'has begun')
+        print("└── {} has a new job: '{}'".format(robot, new_job))
+
+    def complete(self, process):
+        print()
+        print(process, 'has been completed')
+
+        job = process.job
+        robot = process.robot
+        ressources = process.ressources
+
+        def print_sublist(fstr, arg, list):
+            for x in list[:-1]:
+                print('├──', fstr.format(arg, x))
+            print('└──', fstr.format(arg, list[-1]))
+ 
+        if 'move_to_' in job:
+            dest_job = job.split('move_to_')[1]
+            print("└── {} has moved to the job '{}'".format(robot, dest_job))
+
+        elif 'mine_foo' == job:
+            new_foo = self.new('foo')
+            print('└──', new_foo, 'has been mined by', robot)
+
+        elif 'mine_bar' == job:
+            new_bar = self.new('bar')
+            print('└──', new_bar, 'has been mined by', robot)
+
+        elif 'assemble_foobar' == job:
+            foo = ressources['foo'][0]
+            bar = ressources['bar'][0]
+            if random.random() < 0.6:
+                new_foobar = self.new('foobar', foo=foo, bar=bar)
+                print('└──', new_foobar, 'has been mined by', robot)
+            else:
+                self.add('bar', bar)
+                print('└──', robot, 'has failed to assemble a foobar')
+                print(foo, 'has been lost')
+                print(bar, 'has been restored')
+
+        elif 'sell_foobar' == job:
+            foobars = ressources['foobar']
+            self.cash += len(foobars)
+            print_sublist('{} has sold {}', robot, foobars)
+        
+        elif 'buy_robot' == job:
+            nb_orders = ressources['cash'] // 3
+            new_robots = []
+            for _ in range(nb_orders):
+                new_robots.append(self.new('robot'))
+            print_sublist('{} has bought {}', robot, new_robots) 
+            for rb in new_robots: self.allocate(rb)
 
     def report(self):
         fstr = '{:19}{}'
         print()
-        print(fstr.format('foos in stock', len(self.foos)))
-        print(fstr.format('bars in stock', len(self.bars)))
-        print(fstr.format('foobars in stock', len(self.foobars)))
+        print(fstr.format('foos in stock', self.count('foo')))
+        print(fstr.format('bars in stock', self.count('bar')))
+        print(fstr.format('foobars in stock', self.count('foobar')))
         print(fstr.format('cash available', self.cash))
-        print(fstr.format('number of robots', len(self.robots)))
-        print(fstr.format('current time', datetime.now()))
-        print()
-        print()
+        print(fstr.format('number of robots', self.count('robot')))
+        print((fstr + ' {}').format(
+            'elapsed time', self.elapsed_time, '(simulated)'))
+        print('...')
         print()
 
         
 foobartory = Foobartory(
     stock_classes = [Foo, Bar, Foobar],
-    cash = 0,
-    nb_robots = 2,
+    cash_start = 0,
+    nb_robots_start = 2,
+    nb_robots_max = 30,
     timings = {
-        '_coeff': 0.001,
+        '_coeff': 1,
         'mine_foo': [1],
         'mine_bar': [0.5, 2],
         'assemble_foobar': [2],
