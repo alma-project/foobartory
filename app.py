@@ -108,7 +108,8 @@ class Foobartory(Factory):
             duration = duration[0]
         elif len(duration) == 2:
             duration = random.uniform(duration[0], duration[1])
-        return datetime.now() + timedelta(seconds=duration)
+        return datetime.now() + timedelta(
+            seconds=duration * self._timings['_coeff'])
         
     def store_foo(self, robot):
         new_foo = self.new('foo')
@@ -163,7 +164,8 @@ class Foobartory(Factory):
             current_time = datetime.now()
 
         print()
-        print('Completed in', current_time - start_time)
+        print('Completed in {} (simulated time)'.format(
+            (current_time - start_time) / self._timings['_coeff']))
         print()
 
     def order(self, robot, prev_task=None):
@@ -248,6 +250,7 @@ foobartory = Foobartory(
     cash = 0,
     nb_robots = 2,
     timings = {
+        '_coeff': 0.001,
         'mine_foo': [1],
         'mine_bar': [0.5, 2],
         'assemble_foobar': [2],
