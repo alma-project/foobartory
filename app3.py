@@ -114,8 +114,7 @@ class Robot:
         logitems.append(f"duration: {duration} seconds")
         if self.rsrc.cash:
             logitems.append(f"{self.rsrc.cash}€ loaded")
-        logitems.extend([
-            f"{rsrcitem} loaded" for rsrcitem in self.rsrc])
+        logitems.extend([f"{rsrcitem} loaded" for rsrcitem in self.rsrc])
         log += self._format_logsublist(logitems)
         return log
 
@@ -127,31 +126,37 @@ class Robot:
         if self.job.jtype == JobType.CHANGE:
             logitems.append(f"moved to {self.job.destination!r}")
         elif self.job.jtype == JobType.MINE_FOO:
-            logitems.extend(
-                [f"mined {foo}" for foo in collectedrsrc.foos])
+            logitems.extend([f"mined {foo}" for foo in collectedrsrc.foos])
         elif self.job.jtype == JobType.MINE_BAR:
-            logitems.extend([
-                f"mined {bar}" for bar in collectedrsrc.bars])
+            logitems.extend([f"mined {bar}" for bar in collectedrsrc.bars])
         elif self.job.jtype == JobType.ASSEMBLE_FOOBAR:
-            logitems.extend([
-                f"assembled {foobar}" for foobar in collectedrsrc.foobars])
-            logitems.extend([
+            logitems.extend(
+                [f"assembled {foobar}" for foobar in collectedrsrc.foobars]
+            )
+            logitems.extend(
+                [
                     f"failed to assemble a foobar; {bar} has been restored"
-                    for bar in collectedrsrc.bars])
-            logitems.extend([
-                f"consumed {foo}" for foo in consumedrsrc.foos])
+                    for bar in collectedrsrc.bars
+                ]
+            )
+            logitems.extend(
+                [f"consumed {foo}" for foo in consumedrsrc.foos]
+            )
         elif self.job.jtype == JobType.SELL_FOOBAR:
-            logitems.extend([
-                f"sold {foobar}" for foobar in consumedrsrc.foobars])
+            logitems.extend(
+                [f"sold {foobar}" for foobar in consumedrsrc.foobars]
+            )
             if collectedrsrc.cash:
                 logitems.append(f"collected {collectedrsrc.cash}€")
         elif self.job.jtype == JobType.BUY_ROBOT:
-            logitems.extend([
-                f"bought {robot}" for robot in collectedrsrc.robots])
+            logitems.extend(
+                [f"bought {robot}" for robot in collectedrsrc.robots]
+            )
             if consumedrsrc.cash:
                 logitems.append(f"spent {consumedrsrc.cash}€")
-            logitems.extend([
-                f"consumed {foo}" for foo in consumedrsrc.foos])
+            logitems.extend(
+                [f"consumed {foo}" for foo in consumedrsrc.foos]
+            )
         log += self._format_logsublist(logitems)
         return log
 
