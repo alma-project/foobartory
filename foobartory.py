@@ -154,7 +154,7 @@ class Foobartory:
         print("")
         print(f"Inventory")
         print(f"---------")
-        print(self.rsrc))
+        print(self.rsrc)
 
     def print_report(self):
         for msg in self._log:
