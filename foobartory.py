@@ -148,7 +148,6 @@ class Foobartory:
         print(f"simulated   {timedelta(seconds=self.virtualclock)}")
         print(f"real        {datetime.now() - self._realtime_start}")
 
-
     def print_report(self):
         print("")
         print(f"Inventory")
