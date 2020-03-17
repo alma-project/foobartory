@@ -37,16 +37,16 @@ class Foobartory:
             self.print_elapsedtime()
             timer = datetime.now()
             newrobots, previousjob = self.unload(robot)
-            self.load(robot, previousjob)
+            self.load(robot, previousjob=previousjob)
             for newrobot in newrobots:
                 self.load(newrobot)
             self.print_report()
             self.virtualclock += (datetime.now() - timer).total_seconds()
         self.print_finalreport()
 
-    def load(self, robot, previousjob=None):
+    def load(self, robot, *, previousjob=None):
         robot.debug_load()
-        self.assign_job(robot, previousjob)
+        self.assign_job(robot, previousjob=previousjob)
         self.allocate_rsrc(robot)
         duration = random.uniform(*TIMING[robot.job.jtype])
         robot.endtime = self.virtualclock + duration
@@ -92,7 +92,7 @@ class Foobartory:
         robot.job = robot.rsrc = robot.endtime = None
         return collectedrsrc.robots, previousjob
 
-    def assign_job(self, robot, previousjob=None):
+    def assign_job(self, robot, *, previousjob=None):
         if not previousjob:
             robot.job = Job(JobType.MINE_FOO, qty=1)
             return
@@ -145,8 +145,9 @@ class Foobartory:
         print("")
         print(f"Elapsed time")
         print(f"------------")
-        print(f"{datetime.now() - self._realtime_start} (real time)")
-        print(f"{timedelta(seconds=self.virtualclock)} (simulated time)")
+        print(f"simulated   {timedelta(seconds=self.virtualclock)}")
+        print(f"real        {datetime.now() - self._realtime_start}")
+
 
     def print_report(self):
         print("")
