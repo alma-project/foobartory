@@ -6,6 +6,7 @@ from items import Foo, Bar, Foobar, Robot
 from ressource import Ressource
 from constants import TIMING
 
+
 class Foobartory:
     def __init__(self, *, cash_start, nbrobots_start):
         self._log = []
