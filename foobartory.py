@@ -28,22 +28,20 @@ class Foobartory:
         self.print_elapsedtime()
         for robot in self.rsrc.robots:
             self.load(robot)
-        self.print_inventory()
         self.print_report()
         while len(self.rsrc.robots) < nbrobots_max:
             robot = self.schedule.pop(0)
             waittime = robot.endtime - self.virtualclock
             if waittime > 0:
                 self.virtualclock += waittime
-            timer = datetime.now()
             self.print_elapsedtime()
+            timer = datetime.now()
             newrobots, previousjob = self.unload(robot)
             self.load(robot, previousjob)
             for newrobot in newrobots:
                 self.load(newrobot)
-            self.print_inventory()
-            self.virtualclock += (datetime.now() - timer).total_seconds()
             self.print_report()
+            self.virtualclock += (datetime.now() - timer).total_seconds()
         self.print_finalreport()
 
     def load(self, robot, previousjob=None):
@@ -150,13 +148,11 @@ class Foobartory:
         print(f"{datetime.now() - self._realtime_start} (real time)")
         print(f"{timedelta(seconds=self.virtualclock)} (simulated time)")
 
-    def print_inventory(self):
+    def print_report(self):
         print("")
         print(f"Inventory")
         print(f"---------")
         print(self.rsrc)
-
-    def print_report(self):
         for msg in self._log:
             print(msg)
         self._log.clear()
