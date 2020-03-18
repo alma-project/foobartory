@@ -87,7 +87,7 @@ class Robot:
         logitems += [
             f"failed to assemble foobar; {bar} restored"
             for bar in collectedrsrc.bars
-            if completejob.jtype == JobType.SELL_FOOBAR
+            if completejob.jtype == JobType.SELL_ASSEMBLEBAR
         ]
         logitems += [
             f"{foobar} assembled" for foobar in collectedrsrc.foobars
