@@ -1,6 +1,5 @@
 from job import JobType
 
-
 TIMING = {
     JobType.MINE_FOO: (1, 1),
     JobType.MINE_BAR: (0.5, 2),

@@ -32,16 +32,16 @@ class Foobar:
         self.bar = bar
 
     def __repr__(self):
-        return f"<foobar #({self.foo!r}, {self.bar!r})>"
+        return f"<foobar ({self.foo!r}, {self.bar!r})>"
 
 
 class Robot:
     counter = 0
 
-    def __init__(self, job=None):
+    def __init__(self):
         Robot.counter += 1
         self._itemid = Robot.counter
-        self.job = job
+        self.job = None
         self.rsrc = None
         self.endtime = None
 
@@ -57,59 +57,56 @@ class Robot:
 
     @staticmethod
     def _format_logsublist(msgs):
+        if not msgs:
+            return []
         return [f"├── {msg}" for msg in msgs[:-1]] + [f"└── {msgs[-1]}"]
 
     def report_load(self, duration):
         log = []
-        log.append("")
-        log.append((f"{self.job!r} assigned to {self}"))
+        log += [""]
+        log += [f"{self.job!r} assigned to {self}"]
         logitems = []
-        logitems.append(f"duration: {duration} seconds")
+        logitems += [f"duration {duration} seconds"]
         if self.rsrc.cash:
-            logitems.append(f"{self.rsrc.cash}€ loaded")
-        logitems.extend([f"{rsrcitem} loaded" for rsrcitem in self.rsrc])
+            logitems += [f"{self.rsrc.cash}€ allocated"]
+        logitems += [f"{rsrcitem} allocated" for rsrcitem in self.rsrc]
         log += self._format_logsublist(logitems)
         return log
 
     def report_unload(self, consumedrsrc, collectedrsrc):
         log = []
-        log.append("")
-        log.append(f"{self.job!r} done by {self}")
+        log += [""]
+        log += [f"{self.job!r} done by {self}"]
         logitems = []
         if self.job.jtype == JobType.CHANGE:
-            logitems.append(f"moved to {self.job.destination!r}")
+            pass
         elif self.job.jtype == JobType.MINE_FOO:
-            logitems.extend([f"mined {foo}" for foo in collectedrsrc.foos])
+            logitems += [f"{foo} mined" for foo in collectedrsrc.foos]
         elif self.job.jtype == JobType.MINE_BAR:
-            logitems.extend([f"mined {bar}" for bar in collectedrsrc.bars])
+            logitems += [f"{bar} mined" for bar in collectedrsrc.bars]
         elif self.job.jtype == JobType.ASSEMBLE_FOOBAR:
-            logitems.extend(
-                [f"assembled {foobar}" for foobar in collectedrsrc.foobars]
-            )
-            logitems.extend(
-                [
-                    f"failed to assemble a foobar; {bar} has been restored"
-                    for bar in collectedrsrc.bars
-                ]
-            )
-            logitems.extend(
-                [f"consumed {foo}" for foo in consumedrsrc.foos]
-            )
+            logitems += [
+                f"{foobar} assembled" for foobar in collectedrsrc.foobars
+            ]
+            logitems += [
+                f"failed to assemble a foobar; {bar} restored"
+                for bar in collectedrsrc.bars
+            ]
+            logitems += [f"{foo} consumed" for foo in consumedrsrc.foos]
+            logitems += [f"{bar} consumed" for bar in consumedrsrc.bars]
         elif self.job.jtype == JobType.SELL_FOOBAR:
-            logitems.extend(
-                [f"sold {foobar}" for foobar in consumedrsrc.foobars]
-            )
+            logitems += [
+                f"{foobar} sold" for foobar in consumedrsrc.foobars
+            ]
             if collectedrsrc.cash:
-                logitems.append(f"collected {collectedrsrc.cash}€")
+                logitems += [f"{collectedrsrc.cash}€ collected"]
         elif self.job.jtype == JobType.BUY_ROBOT:
-            logitems.extend(
-                [f"bought {robot}" for robot in collectedrsrc.robots]
-            )
+            logitems += [
+                f"{robot} acquired" for robot in collectedrsrc.robots
+            ]
             if consumedrsrc.cash:
-                logitems.append(f"spent {consumedrsrc.cash}€")
-            logitems.extend(
-                [f"consumed {foo}" for foo in consumedrsrc.foos]
-            )
+                logitems += [f"{consumedrsrc.cash}€ spent"]
+            logitems += [f"{foo} consumed" for foo in consumedrsrc.foos]
         log += self._format_logsublist(logitems)
         return log
 

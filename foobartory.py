@@ -1,10 +1,11 @@
 import random
 from bisect import insort
 from datetime import datetime, timedelta
-from job import JobType, Job
-from items import Foo, Bar, Foobar, Robot
-from ressource import Ressource
+
 from constants import TIMING
+from items import Bar, Foo, Foobar, Robot
+from job import Job, JobType
+from ressource import Ressource
 
 
 class Foobartory:
@@ -40,8 +41,8 @@ class Foobartory:
             self.load(robot, previousjob=previousjob)
             for newrobot in newrobots:
                 self.load(newrobot)
-            self.print_report()
             self.virtualclock += (datetime.now() - timer).total_seconds()
+            self.print_report()
         self.print_finalreport()
 
     def load(self, robot, *, previousjob=None):
