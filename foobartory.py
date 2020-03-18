@@ -25,16 +25,16 @@ class Foobartory:
 
     def start(self, nbrobots_max):
         self._realtime_start = datetime.now()
-        self.virtualclock = 0
+        self.clock = 0
         self.print_elapsedtime()
         for robot in self.rsrc.robots:
             self.load(robot)
         self.print_report()
         while len(self.rsrc.robots) < nbrobots_max:
             robot = self.schedule.pop(0)
-            waittime = robot.endtime - self.virtualclock
+            waittime = robot.endtime - self.clock
             if waittime > 0:
-                self.virtualclock += waittime
+                self.clock += waittime
             self.print_elapsedtime()
             timer = datetime.now()
             completejob = robot.job
@@ -42,7 +42,7 @@ class Foobartory:
             self.load(robot, previousjob=completejob)
             for newrobot in collectedrsrc.robots:
                 self.load(newrobot)
-            self.virtualclock += (datetime.now() - timer).total_seconds()
+            self.clock += (datetime.now() - timer).total_seconds()
             self.print_report()
         self.print_finalreport(nbrobots_max)
 
@@ -51,7 +51,7 @@ class Foobartory:
         self.assign_job(robot, previousjob=previousjob)
         self.allocate_rsrc(robot)
         duration = random.uniform(*TIMING[robot.job.jtype])
-        robot.endtime = self.virtualclock + duration
+        robot.endtime = self.clock + duration
         insort(self.schedule, robot)
         self._log += robot.report_load(duration)
 
@@ -104,29 +104,29 @@ class Foobartory:
         return collectedrsrc, consumedrsrc
 
     def assign_job(self, robot, *, previousjob=None):
-        if not previousjob:
+        if previousjob is None:
             robot.job = Job(JobType.MINE_FOO, qty=1)
             return
         if self.rsrc.cash >= 3 and len(self.rsrc.foos) >= 6:
-            jtype, qty = JobType.BUY_ROBOT, 1
+            newjob_jtype, newjob_qty = JobType.BUY_ROBOT, 1
         elif len(self.rsrc.foos) < 6:
-            jtype, qty = JobType.MINE_FOO, 1
+            newjob_jtype, newjob_qty = JobType.MINE_FOO, 1
         elif len(self.rsrc.foobars) > 0:
-            jtype, qty = (
+            newjob_jtype, newjob_qty = (
                 JobType.SELL_FOOBAR,
                 min(5, len(self.rsrc.foobars)),
             )
         elif len(self.rsrc.bars) > 0:
-            jtype, qty = JobType.ASSEMBLE_FOOBAR, 1
+            newjob_jtype, newjob_qty = JobType.ASSEMBLE_FOOBAR, 1
         else:
-            jtype, qty = JobType.MINE_BAR, 1
-        if previousjob.jtype == jtype or (
+            newjob_jtype, newjob_qty = JobType.MINE_BAR, 1
+        if previousjob.jtype == newjob_jtype or (
             previousjob.jtype == JobType.CHANGE
-            and previousjob.destination == jtype
+            and previousjob.destination == newjob_jtype
         ):
-            newjob = Job(jtype, qty=qty)
+            newjob = Job(newjob_jtype, qty=newjob_qty)
         else:
-            newjob = Job(JobType.CHANGE, destination=jtype)
+            newjob = Job(JobType.CHANGE, destination=newjob_jtype)
         robot.job = newjob
 
     def allocate_rsrc(self, robot):
@@ -159,7 +159,7 @@ class Foobartory:
         print("")
         print(f"Elapsed time")
         print(f"------------")
-        print(f"simulated   {timedelta(seconds=self.virtualclock)}")
+        print(f"simulated   {timedelta(seconds=self.clock)}")
         print(f"real        {datetime.now() - self._realtime_start}")
 
     def print_inventory(self):
