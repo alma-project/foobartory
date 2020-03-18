@@ -62,8 +62,7 @@ class Robot:
         return [f"├── {msg}" for msg in msgs[:-1]] + [f"└── {msgs[-1]}"]
 
     def report_load(self, duration):
-        log = []
-        log += [""]
+        log = [""]
         log += [f"{self.job!r} assigned to {self}"]
         logitems = []
         logitems += [f"duration {duration} seconds"]
@@ -74,8 +73,7 @@ class Robot:
         return log
 
     def report_unload(self, consumedrsrc, collectedrsrc):
-        log = []
-        log += [""]
+        log = [""]
         log += [f"{self.job!r} done by {self}"]
         logitems = []
         if self.job.jtype == JobType.CHANGE:
