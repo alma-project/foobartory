@@ -72,9 +72,9 @@ class Robot:
         log += self._format_logsublist(logitems)
         return log
 
-    def report_unload(self, consumedrsrc, collectedrsrc):
+    def report_unload(self, *, completejob, collectedrsrc, consumedrsrc):
         log = [""]
-        log += [f"{self.job!r} done by {self}"]
+        log += [f"{completejob!r} done by {self}"]
         logitems = []
         if collectedrsrc.cash:
             logitems += [f"{collectedrsrc.cash}€ collected"]
@@ -82,12 +82,12 @@ class Robot:
         logitems += [
             f"{bar} mined"
             for bar in collectedrsrc.bars
-            if self.job.jtype == JobType.MINE_BAR
+            if completejob.jtype == JobType.MINE_BAR
         ]
         logitems += [
             f"failed to assemble a foobar; {bar} restored"
             for bar in collectedrsrc.bars
-            if self.job.jtype == JobType.SELL_FOOBAR
+            if completejob.jtype == JobType.SELL_FOOBAR
         ]
         logitems += [
             f"{foobar} assembled" for foobar in collectedrsrc.foobars

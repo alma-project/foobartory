@@ -37,9 +37,10 @@ class Foobartory:
                 self.virtualclock += waittime
             self.print_elapsedtime()
             timer = datetime.now()
-            newrobots, previousjob = self.unload(robot)
-            self.load(robot, previousjob=previousjob)
-            for newrobot in newrobots:
+            completejob = robot.job
+            collectedrsrc, _ = self.unload(robot)
+            self.load(robot, previousjob=completejob)
+            for newrobot in collectedrsrc.robots:
                 self.load(newrobot)
             self.virtualclock += (datetime.now() - timer).total_seconds()
             self.print_report()
@@ -58,6 +59,8 @@ class Foobartory:
         robot.debug_unload()
         consumedrsrc = Ressource()
         collectedrsrc = Ressource()
+        if robot.job.jtype == JobType.CHANGE:
+            pass
         if robot.job.jtype == JobType.MINE_FOO:
             collectedrsrc.foos += [
                 self.Foo() for _ in range(robot.job.qty)
@@ -78,9 +81,8 @@ class Foobartory:
                     consumedrsrc.foos += [foo]
                     collectedrsrc.bars += [bar]
         elif robot.job.jtype == JobType.SELL_FOOBAR:
-            consumedrsrc.foobars += [
-                robot.rsrc.foobars.pop(0) for _ in range(robot.job.qty)
-            ]
+            consumedrsrc.foobars += robot.rsrc.foobars[: robot.job.qty]
+            del robot.rsrc.foobars[: robot.job.qty]
             collectedrsrc.cash += robot.job.qty
             self.salesvolume += robot.job.qty
         elif robot.job.jtype == JobType.BUY_ROBOT:
@@ -91,11 +93,15 @@ class Foobartory:
             collectedrsrc.robots += [
                 self.Robot() for _ in range(robot.job.qty)
             ]
+        completejob = robot.job
         self.rsrc += collectedrsrc + robot.rsrc
-        self._log = robot.report_unload(consumedrsrc, collectedrsrc)
-        previousjob = robot.job
         robot.job = robot.rsrc = robot.endtime = None
-        return collectedrsrc.robots, previousjob
+        self._log = robot.report_unload(
+            completejob=completejob,
+            collectedrsrc=collectedrsrc,
+            consumedrsrc=consumedrsrc,
+        )
+        return collectedrsrc, consumedrsrc
 
     def assign_job(self, robot, *, previousjob=None):
         if not previousjob:
