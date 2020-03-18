@@ -43,7 +43,7 @@ class Foobartory:
                 self.load(newrobot)
             self.virtualclock += (datetime.now() - timer).total_seconds()
             self.print_report()
-        self.print_finalreport()
+        self.print_finalreport(nbrobots_max)
 
     def load(self, robot, *, previousjob=None):
         robot.debug_load()
@@ -139,7 +139,7 @@ class Foobartory:
             del self.rsrc.foos[: robot.job.qty * 6]
 
     def print_elapsedtime(self):
-        print("")
+        print()
         print(
             f"***********************************************************"
         )
@@ -149,16 +149,27 @@ class Foobartory:
         print(f"simulated   {timedelta(seconds=self.virtualclock)}")
         print(f"real        {datetime.now() - self._realtime_start}")
 
-    def print_report(self):
-        print("")
+    def print_inventory(self):
+        print()
         print(f"Inventory")
         print(f"---------")
         print(self.rsrc)
+
+    def print_report(self):
+        self.print_inventory()
         for msg in self._log:
             print(msg)
         self._log.clear()
 
-    def print_finalreport(self):
+    def print_finalreport(self, nbrobots_max):
+        print()
+        print(
+            f"***********************************************************"
+        )
+        print()
+        print(f" Objective reached: {nbrobots_max} robots")
+        self.print_elapsedtime()
+        self.print_inventory()
         print()
         print(f"Final stats")
         print(f"-----------")
