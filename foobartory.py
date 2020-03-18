@@ -59,9 +59,13 @@ class Foobartory:
         consumedrsrc = Ressource()
         collectedrsrc = Ressource()
         if robot.job.jtype == JobType.MINE_FOO:
-            collectedrsrc.foos += [self.Foo() for _ in range(robot.job.qty)]
+            collectedrsrc.foos += [
+                self.Foo() for _ in range(robot.job.qty)
+            ]
         elif robot.job.jtype == JobType.MINE_BAR:
-            collectedrsrc.bars += [self.Bar() for _ in range(robot.job.qty)]
+            collectedrsrc.bars += [
+                self.Bar() for _ in range(robot.job.qty)
+            ]
         elif robot.job.jtype == JobType.ASSEMBLE_FOOBAR:
             for _ in range(robot.job.qty):
                 foo = robot.rsrc.foos.pop(0)
@@ -102,7 +106,10 @@ class Foobartory:
         elif len(self.rsrc.foos) < 6:
             jtype, qty = JobType.MINE_FOO, 1
         elif len(self.rsrc.foobars) > 0:
-            jtype, qty = JobType.SELL_FOOBAR, min(5, len(self.rsrc.foobars))
+            jtype, qty = (
+                JobType.SELL_FOOBAR,
+                min(5, len(self.rsrc.foobars)),
+            )
         elif len(self.rsrc.bars) > 0:
             jtype, qty = JobType.ASSEMBLE_FOOBAR, 1
         else:
