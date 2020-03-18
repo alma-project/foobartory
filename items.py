@@ -85,7 +85,7 @@ class Robot:
             if completejob.jtype == JobType.MINE_BAR
         ]
         logitems += [
-            f"failed to assemble a foobar; {bar} restored"
+            f"failed to assemble foobar; {bar} restored"
             for bar in collectedrsrc.bars
             if completejob.jtype == JobType.SELL_FOOBAR
         ]
